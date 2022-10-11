@@ -1,7 +1,6 @@
 ; заготовка "Доктора". Сентябрь 2022
 #lang racket
 (require racket/vector)
-(require racket)
 
 ; В учебных целях используется базовая версия Scheme
 
@@ -33,16 +32,16 @@
         )
     )
 )
-
+; 5 многопользовательская версия диалога Доктора
 (define (visit-doctor-v2 stop-word patients-number)
-    (let loop ((patients-count patients-number))
-        (if (= patients-count 0)
+    (let loop ((patients-count patients-number)) ; Итерируемся по пациентам
+        (if (= patients-count 0) 
             `(time to go home)
-            (let ((patient-name (ask-patient-name)))
-                (cond ((equal? patient-name stop-word) `(time to go home))
+            (let ((patient-name (ask-patient-name))) ; Считывание имени
+                (cond ((equal? patient-name stop-word) `(time to go home)) ; Завершение диалога по "time to go home"
                     (else (printf "Hello, ~a!\n" patient-name)
                         (print '(what seems to be the trouble?))
-                        (doctor-driver-loop-v2 patient-name)
+                        (doctor-driver-loop-v2 patient-name) ; main loop
                         (loop (- patients-count 1))
                     )
                 )
@@ -74,27 +73,27 @@
                 )
                 (else
                     (print (reply-v2 user-response rep-history)) ; иначе Доктор генерирует ответ, печатает его и продолжает цикл
-                    (loop (vector-append (vector user-response) rep-history))
+                    (loop (vector-append (vector user-response) rep-history)) ; сохраняем реплику в историю пользователя
                 )
             )
         )
     )
 )
 
-; 1-4
-; генерация ответной реплики по user-response -- реплике от пользователя 
+;4
+;генерация ответной реплики по user-response -- реплике от пользователя 
 (define (reply-v2 user-response rep-history)
   (if (= 0 (vector-length rep-history))
       (reply user-response)
       (case (random 3) ; с равной вероятностью выбирается один из двух способов построения ответа
           ((0) (qualifier-answer user-response)) ; 1й способ
           ((1) (hedge-answer))  ; 2й способ
-          ((2) (history-answer rep-history))
+          ((2) (history-answer rep-history)) ; 3й способ
       )
   )
 )
 
-; 1-4
+;4
 (define (history-answer rep-history)
   (append `(earlier you said that) (change-person (pick-random-vector rep-history)))
 )
@@ -189,9 +188,9 @@
 ;2
 (define (many-replace-v2 replacement-pairs lst)
     (let loop ((lst lst) (res '()))
-        (if (null? lst)
-            (reverse res)
-            (let ((pat-rep (assoc (car lst) replacement-pairs)))
+        (if (null? lst) ; в фразе не осталось слов -> 
+            (reverse res) ; возвращаем res 
+            (let ((pat-rep (assoc (car lst) replacement-pairs))) ; Доктор ищет первый элемент списка в ассоциативном списке замен
                 (loop
                     (cdr lst)
                     (cons (if pat-rep
@@ -206,7 +205,7 @@
     )
 )
 
-;3
+; 3
 (define (many-replace-v3 replacement-pairs lst)
     (map
         (lambda (x)
