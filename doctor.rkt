@@ -4,6 +4,104 @@
 
 ; В учебных целях используется базовая версия Scheme
 
+; 6 структура ключевых слов и шаблонов для них
+(define keywords-structure '#(
+    #(
+        #(depressed suicide exams university)
+        #(
+            (when you feel depressed, go out for ice cream)
+            (depression is a disease that can be treated)
+            (did you feel depressed because of exams?)
+            (is this connected with study at university?)
+        )
+    )
+    #(
+        #(mother father parents brother sister uncle aunt grandma grandpa)
+        #(
+            (tell me more about your * , i want to know all about your *)
+            (why do you feel that way about your * ?)
+            (are you in good relationship with your * ?)
+            (tell me a little bit about your * ?)
+        )
+    )
+    #(
+       #(university scheme lections study seminars seminar lection)
+       #(
+            (your education is important)
+            (how much time do you spend on your studies ?)
+            (what do you think about * ?)
+            (do you have any troubles with * ?)
+       )
+    )
+    #(
+        #(scheme lisp scala)
+        #(
+            (functional programming is a most attractive programming paradigm isnt it ?)
+            (* rules whole world !)
+            (i have heard many good things about *)
+            (which functional language do you prefer?)
+        )
+    )
+    #(
+        #(c++ java c#)
+        #(
+            (object-oriented programming is a prettiest programming paradigm ever isnt it ?)
+            (* is the best one !)
+            (* is a reaaly good way to start programming)
+            (* is attractive programming language!)
+        )
+    )
+    #(
+        #(sunny cloudy foggy wet)
+        #(
+            (weather could affect your current state)
+            (do you like when it is * ?)
+            (i really like when it is *)
+            (i have heard that next week it will be *)
+        )
+    )
+    #(
+        #(maths algebra geometry physics chemistry biology)
+        #(
+            (do you have such a big experience in *)
+            (which is your favourite subject among exact sciences)
+            (it is really cool to see a person who in *)
+            (* could help to solve some emotional problems)
+        )
+    )
+    )
+)
+
+; в Racket нет vector-foldl, реализуем для случая с одним вектором (vect-foldl f init vctr)
+; у f три параметра i -- индекс текущего элемента, result -- текущий результат свёртки, elem -- текущий элемент вектора
+(define (vector-foldl f init vctr)
+    (let ((length (vector-length vctr)))
+        (let loop ((i 0) (result init))
+            (if (= i length) 
+                result
+                (loop
+                    (add1 i)
+                    (f i result (vector-ref vctr i))
+                )
+            )
+        )
+    )
+)
+	
+; аналогично от конца вектора к началу
+(define (vector-foldr f init vctr)
+    (let ((length (vector-length vctr)))
+        (let loop ((i (sub1 length)) (result init))
+            (if (= i -1)
+                result
+                (loop
+                    (sub1 i)
+                    (f i result (vector-ref vctr i))
+                )
+            )
+        )
+    )
+)
 ; основная функция, запускающая "Доктора"
 ; параметр name -- имя пациента
 (define (visit-doctor name)
@@ -41,7 +139,7 @@
                 (cond ((equal? patient-name stop-word) `(time to go home)) ; Завершение диалога по "time to go home"
                     (else (printf "Hello, ~a!\n" patient-name)
                         (print '(what seems to be the trouble?))
-                        (doctor-driver-loop-v2 patient-name) ; main loop
+                        (doctor-driver-loop-v2 patient-name)
                         (loop (- patients-count 1))
                     )
                 )
@@ -70,9 +168,10 @@
                 ((equal? user-response '(goodbye)) ; реплика '(goodbye) служит для выхода из цикла
                     (printf "Goodbye, ~a!\n" name)
                     (print '(see you next week))
+                    (newline)
                 )
                 (else
-                    (print (reply-v2 user-response rep-history)) ; иначе Доктор генерирует ответ, печатает его и продолжает цикл
+                    (print (reply-v3 user-response rep-history)) ; иначе Доктор генерирует ответ, печатает его и продолжает цикл
                     (loop (vector-append (vector user-response) rep-history)) ; сохраняем реплику в историю пользователя
                 )
             )
@@ -81,7 +180,7 @@
 )
 
 ;4
-;генерация ответной реплики по user-response -- реплике от пользователя 
+;генерация ответной реплики по user-response -- реплике от пользователя TODO единственная функция reply!!!
 (define (reply-v2 user-response rep-history)
   (if (= 0 (vector-length rep-history))
       (reply user-response)
@@ -93,9 +192,61 @@
   )
 )
 
+; 6 TODO random left right if? 
+(define (reply-v3 user-response rep-history)
+    (if (or (not(check-keywords? user-response)) (= 0 (vector-length rep-history)))
+        (reply-v2 user-response rep-history)
+        (case (random 4) ; с равной вероятностью выбирается один из двух способов построения ответа
+            ((0) (qualifier-answer user-response)) ; 1й способ
+            ((1) (hedge-answer))  ; 2й способ
+            ((2) (history-answer rep-history))
+            ((3) (keyword-answer user-response))
+        )
+    )
+)
+
+; 6
+(define (check-keywords? user-response)
+    (if (null? user-response)
+        #f
+        (if (vector-member? all-keywords (car user-response))
+            #t
+            (check-keywords? (cdr user-response))
+        )
+    )
+)
+
+; 6
+(define (vector-member? vctr elem)
+    (
+        let ((vctr-length (vector-length vctr)))
+        (
+            let loop ((idx 0))
+            (if (>= idx vctr-length)
+                #f (
+                    if (equal? elem (vector-ref vctr idx))
+                        #t
+                        (loop (+ idx 1))
+                )
+            )
+        )
+    )
+)
+
+; случайный выбор одного из элементов непустого вектора
+(define (pick-random-vector vctr)
+    (vector-ref vctr (random 0 (vector-length vctr)))
+)
+
+
+; случайный выбор одного из элементов непустого списка
+(define (pick-random-list lst)
+    (list-ref lst (random 0 (length lst)))
+)
+
 ;4
 (define (history-answer rep-history)
-  (append `(earlier you said that) (change-person (pick-random-vector rep-history)))
+    (append `(earlier you said that) (change-person (pick-random-vector rep-history)))
 )
 
 ; генерация ответной реплики по user-response -- реплике от пользователя 
@@ -103,6 +254,68 @@
     (case (random 0 2) ; с равной вероятностью выбирается один из двух способов построения ответа
         ((0) (hedge-answer))  ; 1й способ
         ((1) (qualifier-answer user-response)) ; 2й способ
+    )
+)
+
+;6
+(define (keyword-answer user-response)
+    (
+        let* (
+            (rand-word (pick-random-list (filtered-user-response user-response)))
+            (phrases-list (
+                    pick-random-vector (get-doctor-responses rand-word)
+                )
+            )
+        )
+        (many-replace-v3
+            (list (list '* rand-word))
+            phrases-list
+        )
+    )
+)
+
+;6
+
+; фильтрация входной строки, которая оставляет только слова, являющиеся ключевыми
+(define (filtered-user-response user-response)
+    (filter (lambda (rand-word) (vector-member? all-keywords rand-word)) user-response)
+)
+
+
+; получения единого вектора всех применимых фраз-шаблонов для данного ключевого слова
+(define (get-doctor-responses rand-word)
+    (vector-foldl
+        (lambda
+            (idx result x)
+            (vector-append result x)
+        )
+        #()
+        (vector-map
+            (lambda (vct) (vector-ref vct 1))
+            (vector-filter
+                (lambda (t)
+                    (vector-member? (vector-ref t 0) rand-word)
+                )
+                keywords-structure
+            )
+        )
+    )
+)
+
+; список уникальных ключевых слов, получаемый из структуры выше
+(define all-keywords
+    (vector-foldl 
+        (lambda
+            (i result t) (
+                vector-append result (
+                    vector-filter-not
+                    (lambda (keyword) (vector-member? result keyword))
+                    (vector-ref t 0)
+                )
+            )
+        )
+        '#()
+        keywords-structure
     )
 )
 
@@ -120,10 +333,6 @@
     )
 )
 
-; случайный выбор одного из элементов непустого вектора
-(define (pick-random-vector vctr)
-    (vector-ref vctr (random 0 (vector-length vctr)))
-)
 
 ; 2й способ генерации ответной реплики -- замена лица в реплике пользователя и приписывание к результату случайно выбранного нового начала
 (define (qualifier-answer user-response)
@@ -185,7 +394,7 @@
     )
 )
 
-;2
+; 2
 (define (many-replace-v2 replacement-pairs lst)
     (let loop ((lst lst) (res '()))
         (if (null? lst) ; в фразе не осталось слов -> 
@@ -217,36 +426,5 @@
             )
         )
         lst
-    )
-)
-
-; в Racket нет vector-foldl, реализуем для случая с одним вектором (vect-foldl f init vctr)
-; у f три параметра i -- индекс текущего элемента, result -- текущий результат свёртки, elem -- текущий элемент вектора
-(define (vector-foldl f init vctr)
-    (let ((length (vector-length vctr)))
-        (let loop ((i 0) (result init))
-            (if (= i length) 
-                result
-                (loop
-                    (add1 i)
-                    (f i result (vector-ref vctr i))
-                )
-            )
-        )
-    )
-)
-	
-; аналогично от конца вектора к началу
-(define (vector-foldr f init vctr)
-    (let ((length (vector-length vctr)))
-        (let loop ((i (sub1 length)) (result init))
-            (if (= i -1)
-                result
-                (loop
-                    (sub1 i)
-                    (f i result (vector-ref vctr i))
-                )
-            )
-        )
     )
 )
