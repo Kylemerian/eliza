@@ -158,7 +158,7 @@
     ) 
 )
 
-;4
+; 4
 (define (doctor-driver-loop-v2 name)
     (let loop ((rep-history #()))
         (newline)
@@ -180,7 +180,7 @@
 )
 
 ;4
-;генерация ответной реплики по user-response -- реплике от пользователя TODO единственная функция reply!!!
+;генерация ответной реплики по user-response -- реплике от пользователя
 (define (reply-v2 user-response rep-history)
   (if (= 0 (vector-length rep-history))
       (reply user-response)
@@ -192,15 +192,36 @@
   )
 )
 
-; 6 TODO random left right if? 
+; 6
 (define (reply-v3 user-response rep-history)
-    (if (or (not(check-keywords? user-response)) (= 0 (vector-length rep-history)))
-        (reply-v2 user-response rep-history)
-        (case (random 4) ; с равной вероятностью выбирается один из двух способов построения ответа
-            ((0) (qualifier-answer user-response)) ; 1й способ
-            ((1) (hedge-answer))  ; 2й способ
-            ((2) (history-answer rep-history))
-            ((3) (keyword-answer user-response))
+  (case (random (if (= 0 (vector-length rep-history)) 1 0) (if (check-keywords? user-response) 4 3)) ; с равной вероятностью выбирается один из двух способов построения ответа
+    ((1) (qualifier-answer user-response)) ; 1й способ  (всегда)
+    ((2) (hedge-answer))  ; 2й способ
+    ((0) (history-answer rep-history))
+    ((3) (keywords-answer user-response)) 
+  )
+)
+
+; 7
+(define reply-strategies
+    (list
+        (list 2  (lambda(x y) #t) (lambda(x y)(hedge-answer)))
+        (list 5  (lambda(x y) #t) (lambda(x y)(qualifier-answer x)))
+        (list 9  (lambda(x y) (if (= 0 (vector-length y)) #f #t)) (lambda(x y)(history-answer y)))
+        (list 14 (lambda(x y) (if (check-keywords? x) #t #f)) (lambda(x y)(keywords-answer x))) 
+    )
+)
+
+; 7
+(define (reply-v4 reply-strategies user-response rep-history)
+    (let ((strategy-list (filter (lambda (x)((cadr x) user-response rep-history)) reply-strategies)))
+        (let ((weight (foldl (lambda(x y)(+ (car x) y)) 0 strategy-list)))
+            (let loop ((rand (random weight)) (p (caar strategy-list)) (current-strategy (car strategy-list)) (other-strategies (cdr strategy-list)))
+                (if (<= rand p)
+                    ((caddr current-strategy) user-response rep-history)
+                    (loop (- rand p) (caar other-strategies) (car other-strategies) (cdr other-strategies))
+                )
+            )
         )
     )
 )
@@ -258,7 +279,7 @@
 )
 
 ;6
-(define (keyword-answer user-response)
+(define (keywords-answer user-response)
     (
         let* (
             (rand-word (pick-random-list (filtered-user-response user-response)))
@@ -275,14 +296,13 @@
 )
 
 ;6
-
-; фильтрация входной строки, которая оставляет только слова, являющиеся ключевыми
+; фильтр, оставляющий ключевые слова
 (define (filtered-user-response user-response)
     (filter (lambda (rand-word) (vector-member? all-keywords rand-word)) user-response)
 )
 
 
-; получения единого вектора всех применимых фраз-шаблонов для данного ключевого слова
+; вектор шаблонов ответа по ключевому слову
 (define (get-doctor-responses rand-word)
     (vector-foldl
         (lambda
@@ -302,7 +322,7 @@
     )
 )
 
-; список уникальных ключевых слов, получаемый из структуры выше
+; список всех ключевых слов
 (define all-keywords
     (vector-foldl 
         (lambda
